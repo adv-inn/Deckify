@@ -1,0 +1,59 @@
+{
+  "name": "deckify",
+  "version": "0.1.0",
+  "description": "A Spotify music manager plugin for Steam Deck, built with Decky.",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c && cd dashboard && pnpm install && pnpm run build",
+    "watch": "rollup -c -w",
+    "lint": "eslint src/ dashboard/src/",
+    "lint:fix": "eslint --fix src/ dashboard/src/",
+    "typecheck": "tsc --noEmit && cd dashboard && tsc --noEmit",
+    "prepare": "husky",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "decky",
+    "plugin",
+    "steam-deck",
+    "spotify",
+    "music",
+    "deckify"
+  ],
+  "author": "0chencc",
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "@decky/rollup": "^1.0.2",
+    "@decky/ui": "^4.11.1",
+    "@eslint/js": "^10.0.1",
+    "@rollup/rollup-linux-x64-musl": "^4.59.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/webpack": "^5.28.5",
+    "eslint": "^10.0.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "rollup": "^4.59.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.0"
+  },
+  "dependencies": {
+    "@decky/api": "^1.1.3",
+    "qrcode.react": "^4.2.0",
+    "react-icons": "^5.5.0",
+    "tslib": "^2.8.1"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": "eslint",
+    "dashboard/src/**/*.{ts,tsx}": "eslint"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
+    }
+  }
+}

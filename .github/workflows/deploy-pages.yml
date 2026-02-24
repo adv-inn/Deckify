@@ -1,0 +1,39 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - install.sh
+      - uninstall.sh
+
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site
+        run: |
+          mkdir _site
+          cp install.sh uninstall.sh _site/
+          echo "deckify.advinn.co" > _site/CNAME
+
+      - uses: actions/upload-pages-artifact@v3
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

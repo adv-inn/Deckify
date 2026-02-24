@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  LIBRESPOT_VERSION: "v0.8.0"
+
+jobs:
+  build-librespot:
+    name: Build librespot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout librespot
+        uses: actions/checkout@v4
+        with:
+          repository: librespot-org/librespot
+          ref: ${{ env.LIBRESPOT_VERSION }}
+
+      - name: Install PulseAudio dev headers
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libpulse-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --no-default-features --features "pulseaudio-backend,with-libmdns"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: librespot
+          path: target/release/librespot
+
+  build-frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+      - run: pnpm run build
+
+      - name: Upload plugin dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: |
+            dist/index.js
+            dashboard/dist/
+
+  release:
+    name: Package & Release
+    runs-on: ubuntu-latest
+    needs: [build-librespot, build-frontend]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            plugin.json
+            main.py
+            package.json
+
+      - name: Download librespot
+        uses: actions/download-artifact@v4
+        with:
+          name: librespot
+          path: artifacts/librespot
+
+      - name: Download frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: artifacts/frontend
+
+      - name: Assemble release
+        run: |
+          mkdir -p staging/Deckify/dist
+          mkdir -p staging/Deckify/bin
+          mkdir -p staging/Deckify/dashboard
+
+          cp plugin.json main.py package.json staging/Deckify/
+          cp artifacts/frontend/dist/index.js staging/Deckify/dist/
+          cp -r artifacts/frontend/dashboard/dist staging/Deckify/dashboard/dist
+          cp artifacts/librespot/librespot staging/Deckify/bin/
+          chmod +x staging/Deckify/bin/librespot
+
+          cd staging && tar -czf ../Deckify.tar.gz Deckify
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Deckify.tar.gz
+          generate_release_notes: true
