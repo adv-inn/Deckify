@@ -57,5 +57,8 @@ cli/
 cli/*
 cli/decky
 
+# Site build output
+_site/
+
 # Windows junk
 nul
