@@ -28,12 +28,40 @@ a:hover{text-decoration:underline}
 section{padding:64px 0}
 section+section{border-top:1px solid var(--border)}
 
+/* lang switcher */
+.lang-sw{
+  position:fixed;top:16px;right:16px;z-index:100;
+  display:flex;gap:4px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:4px;
+}
+.lang-sw button{
+  background:none;border:none;color:var(--muted);
+  padding:4px 10px;border-radius:4px;cursor:pointer;
+  font-size:0.8rem;font-weight:500;transition:all .15s;
+}
+.lang-sw button:hover{color:var(--text)}
+.lang-sw button.active{background:var(--border);color:var(--accent)}
+
 /* hero */
 .hero{text-align:center;padding:96px 0 64px}
 .hero img{width:96px;height:96px;border-radius:20px;margin-bottom:20px}
 .hero h1{font-size:2.8rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:8px}
 .hero h1 span{color:var(--accent)}
 .hero p{font-size:1.15rem;color:var(--muted);max-width:520px;margin:0 auto}
+.hero-install{
+  display:inline-flex;align-items:center;gap:12px;
+  margin-top:24px;padding:12px 20px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);position:relative;
+}
+.hero-install code{
+  font-family:"SF Mono",SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+  font-size:0.9rem;color:var(--accent);
+}
+.hero-install .copy-btn{
+  position:static;transform:none;
+}
 
 /* features */
 .features-grid{
@@ -64,7 +92,8 @@ section+section{border-top:1px solid var(--border)}
   padding:8px;font-size:0.85rem;color:var(--muted);
   background:var(--surface);
 }
-@media(max-width:600px){.screenshots-grid{grid-template-columns:1fr}}
+.screenshots-grid a.wide{grid-column:1/-1}
+@media(max-width:600px){.screenshots-grid{grid-template-columns:1fr}.screenshots-grid a.wide{grid-column:auto}}
 
 /* install */
 .install-block{
@@ -116,6 +145,26 @@ section+section{border-top:1px solid var(--border)}
   border-radius:var(--radius);font-size:0.9rem;color:var(--muted);
 }
 .note strong{color:var(--text)}
+.setup-fields{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.setup-field{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;
+}
+.setup-label{
+  font-size:0.8rem;font-weight:600;color:var(--muted);
+  min-width:80px;flex-shrink:0;
+}
+.setup-field code{
+  display:inline;font-family:"SF Mono",SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+  font-size:0.85rem;color:var(--accent);flex:1;
+}
+.copy-btn-sm{
+  background:var(--border);border:none;color:var(--text);
+  border-radius:4px;padding:3px 8px;cursor:pointer;font-size:0.75rem;
+  transition:background .15s;flex-shrink:0;
+}
+.copy-btn-sm:hover{background:var(--accent-dim);color:#fff}
 
 /* section headings */
 section h2{font-size:1.6rem;font-weight:700;margin-bottom:4px}
@@ -142,44 +191,55 @@ footer .links a+a{margin-left:16px}
 </head>
 <body>
 
+<!-- Language Switcher -->
+<div class="lang-sw">
+  <button onclick="setLang('en')">EN</button>
+  <button onclick="setLang('zh')">中文</button>
+  <button onclick="setLang('ja')">日本語</button>
+</div>
+
 <!-- Hero -->
 <section class="hero">
   <div class="container">
     <img src="assets/logo.png" alt="Deckify logo">
     <h1><span>Deckify</span></h1>
-    <p>A Spotify music manager for Steam Deck, built as a Decky Loader plugin.</p>
+    <p data-i18n="hero_desc"></p>
+    <div class="hero-install">
+      <code id="hero-cmd">curl -fsSL https://deckify.advinn.co/install.sh | sh</code>
+      <button class="copy-btn" data-i18n="copy" onclick="copyCmd(this,'hero-cmd')"></button>
+    </div>
   </div>
 </section>
 
 <!-- Features -->
 <section>
   <div class="container">
-    <h2>Features</h2>
+    <h2 data-i18n="features"></h2>
     <div class="features-grid">
       <div class="feature">
         <div class="icon">📡</div>
         <h3>Spotify Connect</h3>
-        <p>Steam Deck appears as a Spotify Connect device via librespot. Control it from any Spotify app.</p>
+        <p data-i18n="feat_connect"></p>
       </div>
       <div class="feature">
         <div class="icon">🎮</div>
-        <h3>Playback Controls</h3>
-        <p>Play, pause, skip, previous, and volume — all from the Steam Deck Quick Access panel.</p>
+        <h3 data-i18n="feat_playback_t"></h3>
+        <p data-i18n="feat_playback"></p>
       </div>
       <div class="feature">
         <div class="icon">🔀</div>
-        <h3>Device Management</h3>
-        <p>View connected devices and transfer playback between them.</p>
+        <h3 data-i18n="feat_device_t"></h3>
+        <p data-i18n="feat_device"></p>
       </div>
       <div class="feature">
         <div class="icon">🖥️</div>
-        <h3>Web Dashboard</h3>
-        <p>Full Now Playing UI with library browsing, album art, and controls in the Steam browser.</p>
+        <h3 data-i18n="feat_dashboard_t"></h3>
+        <p data-i18n="feat_dashboard"></p>
       </div>
       <div class="feature">
         <div class="icon">🔐</div>
         <h3>OAuth (PKCE)</h3>
-        <p>Secure Spotify login via QR code. No external server required.</p>
+        <p data-i18n="feat_oauth"></p>
       </div>
     </div>
   </div>
@@ -188,27 +248,27 @@ footer .links a+a{margin-left:16px}
 <!-- Screenshots -->
 <section class="screenshots">
   <div class="container">
-    <h2>Screenshots</h2>
+    <h2 data-i18n="screenshots"></h2>
     <div class="screenshots-grid">
       <a href="assets/deckyInit.jpg">
         <img src="assets/deckyInit.jpg" alt="Quick Access Panel" loading="lazy">
-        <div class="caption">Quick Access Panel</div>
+        <div class="caption" data-i18n="ss_panel"></div>
       </a>
       <a href="assets/deckypanel.jpg">
         <img src="assets/deckypanel.jpg" alt="Playback Controls" loading="lazy">
-        <div class="caption">Playback Controls</div>
+        <div class="caption" data-i18n="ss_playback"></div>
       </a>
       <a href="assets/deckyQRcode.jpg">
         <img src="assets/deckyQRcode.jpg" alt="QR Code Login" loading="lazy">
-        <div class="caption">QR Code Login</div>
-      </a>
-      <a href="assets/dashboard.jpg">
-        <img src="assets/dashboard.jpg" alt="Web Dashboard" loading="lazy">
-        <div class="caption">Web Dashboard</div>
+        <div class="caption" data-i18n="ss_qr"></div>
       </a>
       <a href="assets/dashboard-library.jpg">
         <img src="assets/dashboard-library.jpg" alt="Dashboard Library" loading="lazy">
-        <div class="caption">Dashboard Library</div>
+        <div class="caption" data-i18n="ss_library"></div>
+      </a>
+      <a href="assets/dashboard.jpg" class="wide">
+        <img src="assets/dashboard.jpg" alt="Web Dashboard" loading="lazy">
+        <div class="caption" data-i18n="ss_dashboard"></div>
       </a>
     </div>
   </div>
@@ -217,42 +277,53 @@ footer .links a+a{margin-left:16px}
 <!-- Install -->
 <section>
   <div class="container">
-    <h2>Install</h2>
-    <p>One command, that's it.</p>
+    <h2 data-i18n="install"></h2>
+    <p data-i18n="install_desc"></p>
     <div class="install-block">
       <code id="install-cmd">curl -fsSL https://deckify.advinn.co/install.sh | sh</code>
-      <button class="copy-btn" onclick="copyCmd(this,'install-cmd')">Copy</button>
+      <button class="copy-btn" data-i18n="copy" onclick="copyCmd(this,'install-cmd')"></button>
     </div>
     <div style="margin-top:16px">
-      <span class="prereq">Requires <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a> installed on your Steam Deck</span>
+      <span class="prereq" data-i18n-html="install_prereq"></span>
     </div>
     <div class="install-block" style="margin-top:16px">
       <code id="uninstall-cmd">curl -fsSL https://deckify.advinn.co/uninstall.sh | sh</code>
-      <button class="copy-btn" onclick="copyCmd(this,'uninstall-cmd')">Copy</button>
+      <button class="copy-btn" data-i18n="copy" onclick="copyCmd(this,'uninstall-cmd')"></button>
     </div>
-    <p style="color:var(--muted);font-size:0.85rem;margin-top:8px">To uninstall.</p>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:8px" data-i18n="uninstall_label"></p>
   </div>
 </section>
 
 <!-- Spotify Setup -->
 <section>
   <div class="container">
-    <h2>Spotify App Setup</h2>
-    <p>Each user needs their own Spotify App (takes ~2 minutes).</p>
+    <h2 data-i18n="setup_title"></h2>
+    <p data-i18n="setup_desc"></p>
     <ol class="steps">
-      <li>Go to <a href="https://developer.spotify.com" target="_blank" rel="noopener">developer.spotify.com</a> and create a new app with:
-        <br><strong>App name:</strong> <code style="display:inline;color:var(--accent);font-size:.85rem">Deckify</code>
-        &nbsp; <strong>Redirect URI:</strong> <code style="display:inline;color:var(--accent);font-size:.85rem">https://steamdeck.local:39281/callback</code>
-        &nbsp; Check <strong>Web API</strong>
+      <li><span data-i18n-html="setup_step1"></span>
+        <div class="setup-fields">
+          <div class="setup-field">
+            <span class="setup-label" data-i18n="setup_appname"></span>
+            <code id="field-name">Deckify</code>
+            <button class="copy-btn-sm" data-i18n="copy" onclick="copyCmd(this,'field-name')"></button>
+          </div>
+          <div class="setup-field">
+            <span class="setup-label">Redirect URI</span>
+            <code id="field-uri">https://steamdeck.local:39281/callback</code>
+            <button class="copy-btn-sm" data-i18n="copy" onclick="copyCmd(this,'field-uri')"></button>
+          </div>
+          <div class="setup-field">
+            <span class="setup-label">API</span>
+            <span style="color:var(--muted)" data-i18n-html="setup_api"></span>
+          </div>
+        </div>
         <img class="create-app-img" src="assets/createApp.png" alt="Create App settings" loading="lazy">
       </li>
-      <li>Copy the <strong>Client ID</strong> and enter it in the plugin's Spotify Login flow</li>
-      <li>When scanning the QR code, your browser may show a certificate warning — this is expected (self-signed cert). Proceed to continue.</li>
-      <li>If you changed your Steam Deck's hostname, replace <code style="display:inline;color:var(--accent);font-size:.85rem">steamdeck</code> in the redirect URI accordingly</li>
+      <li data-i18n-html="setup_step2"></li>
+      <li data-i18n="setup_step3"></li>
+      <li data-i18n-html="setup_step4"></li>
     </ol>
-    <div class="note">
-      <strong>Note:</strong> Spotify development mode limits each Client ID to 5 authorized users. You can add users in your app's dashboard.
-    </div>
+    <div class="note" data-i18n-html="setup_note"></div>
   </div>
 </section>
 
@@ -268,13 +339,149 @@ footer .links a+a{margin-left:16px}
 </footer>
 
 <script>
+var I18N={
+en:{
+  hero_desc:"A Spotify music manager for Steam Deck, built as a Decky Loader plugin.",
+  features:"Features",
+  feat_connect:"Steam Deck appears as a Spotify Connect device via librespot. Control it from any Spotify app.",
+  feat_playback_t:"Playback Controls",
+  feat_playback:"Play, pause, skip, previous, and volume \u2014 all from the Steam Deck Quick Access panel.",
+  feat_device_t:"Device Management",
+  feat_device:"View connected devices and transfer playback between them.",
+  feat_dashboard_t:"Web Dashboard",
+  feat_dashboard:"Full Now Playing UI with library browsing, album art, and controls in the Steam browser.",
+  feat_oauth:"Secure Spotify login via QR code. No external server required.",
+  screenshots:"Screenshots",
+  ss_panel:"Quick Access Panel",
+  ss_playback:"Playback Controls",
+  ss_qr:"QR Code Login",
+  ss_library:"Dashboard Library",
+  ss_dashboard:"Web Dashboard",
+  install:"Install",
+  install_desc:"One command, that\u2019s it.",
+  install_prereq:'Requires <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a> installed on your Steam Deck',
+  uninstall_label:"To uninstall.",
+  copy:"Copy",
+  copied:"Copied!",
+  setup_title:"Spotify App Setup",
+  setup_desc:"Each user needs their own Spotify App (takes ~2 minutes).",
+  setup_step1:'Go to <a href="https://developer.spotify.com" target="_blank" rel="noopener">developer.spotify.com</a> and create a new app with:',
+  setup_appname:"App name",
+  setup_api:'Check <strong style="color:var(--text)">Web API</strong>',
+  setup_step2:'Copy the <strong>Client ID</strong> and enter it in the plugin\u2019s Spotify Login flow',
+  setup_step3:"When scanning the QR code, your browser may show a certificate warning \u2014 this is expected (self-signed cert). Proceed to continue.",
+  setup_step4:'If you changed your Steam Deck\u2019s hostname, replace <code style="display:inline;color:var(--accent);font-size:.85rem">steamdeck</code> in the redirect URI accordingly',
+  setup_note:'<strong>Note:</strong> Spotify development mode limits each Client ID to 5 authorized users. You can add users in your app\u2019s dashboard.'
+},
+zh:{
+  hero_desc:"\u4e00\u6b3e\u4e3a Steam Deck \u6253\u9020\u7684 Spotify \u97f3\u4e50\u7ba1\u7406\u5668\uff0c\u57fa\u4e8e Decky Loader \u63d2\u4ef6\u6846\u67b6\u3002",
+  features:"\u529f\u80fd\u7279\u6027",
+  feat_connect:"Steam Deck \u5c06\u4f5c\u4e3a Spotify Connect \u8bbe\u5907\u51fa\u73b0\uff08\u901a\u8fc7 librespot\uff09\u3002\u53ef\u4ece\u4efb\u4f55 Spotify \u5ba2\u6237\u7aef\u63a7\u5236\u3002",
+  feat_playback_t:"\u64ad\u653e\u63a7\u5236",
+  feat_playback:"\u64ad\u653e\u3001\u6682\u505c\u3001\u4e0a\u4e00\u9996\u3001\u4e0b\u4e00\u9996\u3001\u97f3\u91cf\u8c03\u8282 \u2014\u2014 \u5168\u90e8\u5728 Quick Access \u9762\u677f\u5b8c\u6210\u3002",
+  feat_device_t:"\u8bbe\u5907\u7ba1\u7406",
+  feat_device:"\u67e5\u770b\u5df2\u8fde\u63a5\u7684\u8bbe\u5907\uff0c\u5728\u8bbe\u5907\u4e4b\u95f4\u5207\u6362\u64ad\u653e\u3002",
+  feat_dashboard_t:"Web \u4eea\u8868\u76d8",
+  feat_dashboard:"\u5b8c\u6574\u7684\u6b63\u5728\u64ad\u653e\u754c\u9762\uff0c\u652f\u6301\u66f2\u5e93\u6d4f\u89c8\u3001\u4e13\u8f91\u5c01\u9762\u3001\u64ad\u653e\u63a7\u5236\uff0c\u5728 Steam \u6d4f\u89c8\u5668\u4e2d\u6253\u5f00\u3002",
+  feat_oauth:"\u901a\u8fc7 QR \u7801\u5b89\u5168\u767b\u5f55 Spotify\u3002\u65e0\u9700\u5916\u90e8\u670d\u52a1\u5668\u3002",
+  screenshots:"\u622a\u56fe",
+  ss_panel:"Quick Access \u9762\u677f",
+  ss_playback:"\u64ad\u653e\u63a7\u5236",
+  ss_qr:"QR \u7801\u767b\u5f55",
+  ss_library:"\u4eea\u8868\u76d8\u66f2\u5e93",
+  ss_dashboard:"Web \u4eea\u8868\u76d8",
+  install:"\u5b89\u88c5",
+  install_desc:"\u4e00\u884c\u547d\u4ee4\uff0c\u641e\u5b9a\u3002",
+  install_prereq:'\u9700\u8981\u5728 Steam Deck \u4e0a\u5148\u5b89\u88c5 <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a>',
+  uninstall_label:"\u5378\u8f7d\u547d\u4ee4\u3002",
+  copy:"\u590d\u5236",
+  copied:"\u5df2\u590d\u5236\uff01",
+  setup_title:"Spotify \u5e94\u7528\u914d\u7f6e",
+  setup_desc:"\u6bcf\u4f4d\u7528\u6237\u9700\u8981\u521b\u5efa\u81ea\u5df1\u7684 Spotify App\uff08\u7ea6 2 \u5206\u949f\uff09\u3002",
+  setup_step1:'\u524d\u5f80 <a href="https://developer.spotify.com" target="_blank" rel="noopener">developer.spotify.com</a> \u521b\u5efa\u4e00\u4e2a\u65b0\u5e94\u7528\uff0c\u586b\u5199\u4ee5\u4e0b\u4fe1\u606f\uff1a',
+  setup_appname:"\u5e94\u7528\u540d\u79f0",
+  setup_api:'\u52fe\u9009 <strong style="color:var(--text)">Web API</strong>',
+  setup_step2:'\u590d\u5236 <strong>Client ID</strong>\uff0c\u5728\u63d2\u4ef6\u7684 Spotify \u767b\u5f55\u6d41\u7a0b\u4e2d\u8f93\u5165',
+  setup_step3:"\u626b\u63cf QR \u7801\u65f6\uff0c\u6d4f\u89c8\u5668\u53ef\u80fd\u663e\u793a\u8bc1\u4e66\u8b66\u544a \u2014\u2014 \u8fd9\u662f\u6b63\u5e38\u7684\uff08\u81ea\u7b7e\u540d\u8bc1\u4e66\uff09\u3002\u70b9\u51fb\u7ee7\u7eed\u5373\u53ef\u3002",
+  setup_step4:'\u5982\u679c\u4f60\u4fee\u6539\u8fc7 Steam Deck \u7684\u4e3b\u673a\u540d\uff0c\u8bf7\u5c06\u91cd\u5b9a\u5411 URI \u4e2d\u7684 <code style="display:inline;color:var(--accent);font-size:.85rem">steamdeck</code> \u66ff\u6362\u4e3a\u5bf9\u5e94\u7684\u4e3b\u673a\u540d',
+  setup_note:'<strong>\u6ce8\u610f\uff1a</strong>Spotify \u5f00\u53d1\u8005\u6a21\u5f0f\u4e0b\u6bcf\u4e2a Client ID \u6700\u591a\u5141\u8bb8 5 \u4e2a\u6388\u6743\u7528\u6237\u3002\u53ef\u5728\u5e94\u7528\u540e\u53f0\u6dfb\u52a0\u7528\u6237\u3002'
+},
+ja:{
+  hero_desc:"Steam Deck \u5411\u3051 Spotify \u97f3\u697d\u30de\u30cd\u30fc\u30b8\u30e3\u30fc\u3002Decky Loader \u30d7\u30e9\u30b0\u30a4\u30f3\u3068\u3057\u3066\u52d5\u4f5c\u3057\u307e\u3059\u3002",
+  features:"\u6a5f\u80fd",
+  feat_connect:"Steam Deck \u304c librespot \u7d4c\u7531\u3067 Spotify Connect \u30c7\u30d0\u30a4\u30b9\u3068\u3057\u3066\u8868\u793a\u3055\u308c\u307e\u3059\u3002\u4efb\u610f\u306e Spotify \u30a2\u30d7\u30ea\u304b\u3089\u64cd\u4f5c\u3067\u304d\u307e\u3059\u3002",
+  feat_playback_t:"\u518d\u751f\u30b3\u30f3\u30c8\u30ed\u30fc\u30eb",
+  feat_playback:"\u518d\u751f\u30fb\u4e00\u6642\u505c\u6b62\u30fb\u30b9\u30ad\u30c3\u30d7\u30fb\u524d\u306e\u66f2\u30fb\u97f3\u91cf\u8abf\u6574 \u2014 \u3059\u3079\u3066 Quick Access \u30d1\u30cd\u30eb\u304b\u3089\u64cd\u4f5c\u3067\u304d\u307e\u3059\u3002",
+  feat_device_t:"\u30c7\u30d0\u30a4\u30b9\u7ba1\u7406",
+  feat_device:"\u63a5\u7d9a\u4e2d\u306e\u30c7\u30d0\u30a4\u30b9\u3092\u78ba\u8a8d\u3057\u3001\u30c7\u30d0\u30a4\u30b9\u9593\u3067\u518d\u751f\u3092\u5207\u308a\u66ff\u3048\u3089\u308c\u307e\u3059\u3002",
+  feat_dashboard_t:"Web \u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9",
+  feat_dashboard:"\u30e9\u30a4\u30d6\u30e9\u30ea\u95b2\u89a7\u30fb\u30a2\u30eb\u30d0\u30e0\u30a2\u30fc\u30c8\u30fb\u518d\u751f\u30b3\u30f3\u30c8\u30ed\u30fc\u30eb\u4ed8\u304d\u306e Now Playing UI\u3002Steam \u30d6\u30e9\u30a6\u30b6\u3067\u958b\u3051\u307e\u3059\u3002",
+  feat_oauth:"QR \u30b3\u30fc\u30c9\u3067 Spotify \u306b\u5b89\u5168\u306b\u30ed\u30b0\u30a4\u30f3\u3002\u5916\u90e8\u30b5\u30fc\u30d0\u30fc\u4e0d\u8981\u3002",
+  screenshots:"\u30b9\u30af\u30ea\u30fc\u30f3\u30b7\u30e7\u30c3\u30c8",
+  ss_panel:"Quick Access \u30d1\u30cd\u30eb",
+  ss_playback:"\u518d\u751f\u30b3\u30f3\u30c8\u30ed\u30fc\u30eb",
+  ss_qr:"QR \u30b3\u30fc\u30c9\u30ed\u30b0\u30a4\u30f3",
+  ss_library:"\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9\u30e9\u30a4\u30d6\u30e9\u30ea",
+  ss_dashboard:"Web \u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9",
+  install:"\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb",
+  install_desc:"\u30b3\u30de\u30f3\u30c9\u4e00\u3064\u3067\u5b8c\u4e86\u3002",
+  install_prereq:'Steam Deck \u306b <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a> \u304c\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u6e08\u307f\u3067\u3042\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059',
+  uninstall_label:"\u30a2\u30f3\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u7528\u3002",
+  copy:"\u30b3\u30d4\u30fc",
+  copied:"\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f\uff01",
+  setup_title:"Spotify \u30a2\u30d7\u30ea\u306e\u8a2d\u5b9a",
+  setup_desc:"\u5404\u30e6\u30fc\u30b6\u30fc\u304c\u81ea\u5206\u306e Spotify App \u3092\u4f5c\u6210\u3059\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059\uff08\u7d04 2 \u5206\uff09\u3002",
+  setup_step1:'<a href="https://developer.spotify.com" target="_blank" rel="noopener">developer.spotify.com</a> \u3067\u65b0\u3057\u3044\u30a2\u30d7\u30ea\u3092\u4f5c\u6210\u3057\u3001\u4ee5\u4e0b\u3092\u5165\u529b\uff1a',
+  setup_appname:"\u30a2\u30d7\u30ea\u540d",
+  setup_api:'<strong style="color:var(--text)">Web API</strong> \u306b\u30c1\u30a7\u30c3\u30af',
+  setup_step2:'<strong>Client ID</strong> \u3092\u30b3\u30d4\u30fc\u3057\u3001\u30d7\u30e9\u30b0\u30a4\u30f3\u306e Spotify \u30ed\u30b0\u30a4\u30f3\u753b\u9762\u3067\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044',
+  setup_step3:"QR \u30b3\u30fc\u30c9\u3092\u30b9\u30ad\u30e3\u30f3\u3059\u308b\u3068\u3001\u30d6\u30e9\u30a6\u30b6\u306b\u8a3c\u660e\u66f8\u306e\u8b66\u544a\u304c\u8868\u793a\u3055\u308c\u308b\u5834\u5408\u304c\u3042\u308a\u307e\u3059 \u2014 \u3053\u308c\u306f\u6b63\u5e38\u3067\u3059\uff08\u81ea\u5df1\u7f72\u540d\u8a3c\u660e\u66f8\uff09\u3002\u7d9a\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+  setup_step4:'Steam Deck \u306e\u30db\u30b9\u30c8\u540d\u3092\u5909\u66f4\u3057\u305f\u5834\u5408\u306f\u3001\u30ea\u30c0\u30a4\u30ec\u30af\u30c8 URI \u306e <code style="display:inline;color:var(--accent);font-size:.85rem">steamdeck</code> \u3092\u5bfe\u5fdc\u3059\u308b\u30db\u30b9\u30c8\u540d\u306b\u7f6e\u304d\u63db\u3048\u3066\u304f\u3060\u3055\u3044',
+  setup_note:'<strong>\u6ce8\u610f\uff1a</strong>Spotify \u30c7\u30d9\u30ed\u30c3\u30d1\u30fc\u30e2\u30fc\u30c9\u3067\u306f\u3001\u5404 Client ID \u306b\u3064\u304d\u6700\u5927 5 \u4eba\u306e\u8a8d\u53ef\u30e6\u30fc\u30b6\u30fc\u307e\u3067\u3002\u30a2\u30d7\u30ea\u306e\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9\u3067\u30e6\u30fc\u30b6\u30fc\u3092\u8ffd\u52a0\u3067\u304d\u307e\u3059\u3002'
+}
+};
+
+function detectLang(){
+  var s=localStorage.getItem("lang");
+  if(s&&I18N[s])return s;
+  var n=navigator.language||"";
+  if(n.startsWith("zh"))return"zh";
+  if(n.startsWith("ja"))return"ja";
+  return"en";
+}
+
+function setLang(l){
+  localStorage.setItem("lang",l);
+  applyLang(l);
+}
+
+function applyLang(l){
+  var t=I18N[l]||I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach(function(el){
+    var k=el.getAttribute("data-i18n");
+    if(t[k]!=null)el.textContent=t[k];
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(function(el){
+    var k=el.getAttribute("data-i18n-html");
+    if(t[k]!=null)el.innerHTML=t[k];
+  });
+  document.querySelectorAll(".lang-sw button").forEach(function(b){
+    b.classList.toggle("active",b.textContent.trim()===({en:"EN",zh:"\u4e2d\u6587",ja:"\u65e5\u672c\u8a9e"}[l]||""));
+  });
+  document.documentElement.lang=l;
+}
+
 function copyCmd(btn,id){
-  var t=document.getElementById(id).textContent;
-  navigator.clipboard.writeText(t).then(function(){
-    btn.textContent="Copied!";
-    setTimeout(function(){btn.textContent="Copy"},1500);
+  var l=localStorage.getItem("lang")||detectLang();
+  var t=I18N[l]||I18N.en;
+  var v=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(v).then(function(){
+    btn.textContent=t.copied;
+    setTimeout(function(){btn.textContent=t.copy},1500);
   });
 }
+
+applyLang(detectLang());
 </script>
 </body>
 </html>
