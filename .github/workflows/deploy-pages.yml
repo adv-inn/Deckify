@@ -4,8 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - site/**
+      - assets/**
       - install.sh
       - uninstall.sh
+      - .github/workflows/deploy-pages.yml
 
   workflow_dispatch:
 
@@ -31,6 +34,8 @@ jobs:
         run: |
           mkdir _site
           cp install.sh uninstall.sh _site/
+          cp site/index.html _site/
+          cp -r assets _site/assets
           echo "deckify.advinn.co" > _site/CNAME
 
       - uses: actions/upload-pages-artifact@v3
