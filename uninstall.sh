@@ -8,7 +8,7 @@ if [ ! -d "$INSTALL_DIR" ]; then
   exit 0
 fi
 
-rm -rf "$INSTALL_DIR"
+sudo rm -rf "$INSTALL_DIR"
 
 echo "Restarting Decky plugin loader..."
 sudo systemctl restart plugin_loader

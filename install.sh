@@ -31,9 +31,9 @@ echo "Downloading $DOWNLOAD_URL ..."
 curl -fSL -o "$TMPDIR/Deckify.tar.gz" "$DOWNLOAD_URL"
 
 # Install
-rm -rf "$INSTALL_DIR"
-tar -xzf "$TMPDIR/Deckify.tar.gz" -C "$PLUGIN_DIR"
-chmod +x "$INSTALL_DIR/bin/librespot"
+sudo rm -rf "$INSTALL_DIR"
+sudo tar -xzf "$TMPDIR/Deckify.tar.gz" -C "$PLUGIN_DIR"
+sudo chmod +x "$INSTALL_DIR/bin/librespot"
 
 # Restart plugin loader
 echo "Restarting Decky plugin loader..."
