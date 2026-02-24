@@ -33,6 +33,7 @@ curl -fSL -o "$TMPDIR/Deckify.tar.gz" "$DOWNLOAD_URL"
 # Install
 sudo rm -rf "$INSTALL_DIR"
 sudo tar -xzf "$TMPDIR/Deckify.tar.gz" -C "$PLUGIN_DIR"
+sudo chown -R "$USER:$USER" "$INSTALL_DIR"
 sudo chmod +x "$INSTALL_DIR/bin/librespot"
 
 # Restart plugin loader
