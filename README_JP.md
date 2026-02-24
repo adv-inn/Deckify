@@ -22,13 +22,13 @@
 |:--:|:--:|
 | ![Plugin Panel](assets/deckyInit.jpg) | ![Now Playing](assets/deckypanel.jpg) |
 
-| QR コードログイン | Web ダッシュボード |
+| QR コードログイン | ダッシュボードライブラリ |
 |:--:|:--:|
-| ![QR Login](assets/deckyQRcode.jpg) | ![Dashboard](assets/dashboard.jpg) |
+| ![QR Login](assets/deckyQRcode.jpg) | ![Library](assets/dashboard-library.jpg) |
 
-| ダッシュボードライブラリ |
+| Web ダッシュボード |
 |:--:|
-| ![Library](assets/dashboard-library.jpg) |
+| ![Dashboard](assets/dashboard.jpg) |
 
 ## インストール
 

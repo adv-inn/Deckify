@@ -22,13 +22,13 @@
 |:--:|:--:|
 | ![Plugin Panel](assets/deckyInit.jpg) | ![Now Playing](assets/deckypanel.jpg) |
 
-| 二维码登录 | Web 仪表盘 |
+| 二维码登录 | 仪表盘曲库 |
 |:--:|:--:|
-| ![QR Login](assets/deckyQRcode.jpg) | ![Dashboard](assets/dashboard.jpg) |
+| ![QR Login](assets/deckyQRcode.jpg) | ![Library](assets/dashboard-library.jpg) |
 
-| 仪表盘曲库 |
+| Web 仪表盘 |
 |:--:|
-| ![Library](assets/dashboard-library.jpg) |
+| ![Dashboard](assets/dashboard.jpg) |
 
 ## 安装
 

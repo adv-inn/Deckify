@@ -22,13 +22,13 @@
 |:--:|:--:|
 | ![Plugin Panel](assets/deckyInit.jpg) | ![Now Playing](assets/deckypanel.jpg) |
 
-| QR Code Login | Web Dashboard |
+| QR Code Login | Dashboard Library |
 |:--:|:--:|
-| ![QR Login](assets/deckyQRcode.jpg) | ![Dashboard](assets/dashboard.jpg) |
+| ![QR Login](assets/deckyQRcode.jpg) | ![Library](assets/dashboard-library.jpg) |
 
-| Dashboard Library |
+| Web Dashboard |
 |:--:|
-| ![Library](assets/dashboard-library.jpg) |
+| ![Dashboard](assets/dashboard.jpg) |
 
 ## Install
 
