@@ -85,7 +85,7 @@ def _get_mdns_host() -> str:
         return _get_lan_ip()
 
 
-def _ensure_ssl_cert() -> ssl.SSLContext | None:
+def _ensure_ssl_cert() -> tuple[ssl.SSLContext, None] | tuple[None, str]:
     if not os.path.isfile(SSL_CERT) or not os.path.isfile(SSL_KEY):
         decky.logger.info("SSL cert not found at %s, generating...", SSL_CERT)
         mdns_host = _get_mdns_host()
@@ -99,20 +99,23 @@ def _ensure_ssl_cert() -> ssl.SSLContext | None:
                 "-addext", f"subjectAltName=DNS:{mdns_host}",
             ], capture_output=True, text=True)
             if result.returncode != 0:
-                decky.logger.error("openssl failed (code %d): %s", result.returncode, result.stderr)
-                return None
+                msg = f"openssl failed (code {result.returncode}): {result.stderr.strip()}"
+                decky.logger.error(msg)
+                return None, msg
         except Exception as e:
-            decky.logger.error("Failed to generate SSL cert: %s", e)
-            return None
+            msg = f"Failed to run openssl: {e}"
+            decky.logger.error(msg)
+            return None, msg
     else:
         decky.logger.info("SSL cert found at %s", SSL_CERT)
     try:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(SSL_CERT, SSL_KEY)
-        return ctx
+        return ctx, None
     except Exception as e:
-        decky.logger.error("Failed to load SSL cert: %s", e)
-        return None
+        msg = f"Failed to load SSL cert: {e}"
+        decky.logger.error(msg)
+        return None, msg
 
 
 def _generate_pkce_pair() -> tuple[str, str]:
@@ -757,9 +760,9 @@ class Plugin:
     async def start_oauth(self) -> dict:
         await self._stop_oauth_server()
 
-        ssl_ctx = _ensure_ssl_cert()
+        ssl_ctx, ssl_err = _ensure_ssl_cert()
         if not ssl_ctx:
-            return {"ok": False, "error": "Failed to create SSL certificate"}
+            return {"ok": False, "error": f"Failed to create SSL certificate: {ssl_err}"}
 
         mdns_host = _get_mdns_host()
         base_url = f"https://{mdns_host}:{OAUTH_SERVER_PORT}"
