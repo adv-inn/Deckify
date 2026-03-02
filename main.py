@@ -96,6 +96,7 @@ def _ensure_ssl_cert() -> tuple[ssl.SSLContext, None] | tuple[None, str]:
                 "-keyout", SSL_KEY, "-out", SSL_CERT,
                 "-days", "3650", "-nodes",
                 "-subj", f"/CN={mdns_host}",
+                "-config", "/dev/null",
             ], capture_output=True, text=True)
             if result.returncode != 0:
                 msg = f"openssl failed (code {result.returncode}): {result.stderr.strip()}"
