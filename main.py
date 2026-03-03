@@ -13,6 +13,10 @@ import urllib.request
 
 import decky
 
+# Decky Loader (PyInstaller) injects LD_LIBRARY_PATH pointing to its bundled
+# libs which are older than the system's.  Subprocesses like openssl and
+# librespot then load the wrong libssl/libcrypto and crash.  Strip it early.
+os.environ.pop("LD_LIBRARY_PATH", None)
 
 SETTINGS_FILE = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
 LIBRESPOT_BIN = os.path.join(decky.DECKY_PLUGIN_DIR, "bin", "librespot")
