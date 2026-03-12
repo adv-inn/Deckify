@@ -67,13 +67,78 @@ jobs:
     needs: [build-librespot, build-frontend]
     permissions:
       contents: write
+      issues: read
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            plugin.json
-            main.py
-            package.json
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -A1 "^${TAG}$" | tail -1)
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          echo "## What's Changed" > notes.md
+          echo "" >> notes.md
+
+          # Categorize commits
+          FIXES=""
+          FEATURES=""
+          OTHER=""
+          while IFS= read -r line; do
+            HASH=$(echo "$line" | cut -d' ' -f1)
+            MSG=$(echo "$line" | cut -d' ' -f2-)
+            AUTHOR=$(git log -1 --format='%an' "$HASH")
+            ENTRY="- ${MSG} (\`${HASH}\`) — @${AUTHOR}"
+            case "$MSG" in
+              Fix*|fix*|Drop*|Strip*|Bypass*|Surface*) FIXES="${FIXES}${ENTRY}"$'\n' ;;
+              Add*|add*|Boost*|Implement*) FEATURES="${FEATURES}${ENTRY}"$'\n' ;;
+              *) OTHER="${OTHER}${ENTRY}"$'\n' ;;
+            esac
+          done < <(git log --pretty=format:"%h %s" "${PREV_TAG}..${TAG}")
+
+          if [ -n "$FEATURES" ]; then
+            echo "### New Features" >> notes.md
+            echo "$FEATURES" >> notes.md
+          fi
+          if [ -n "$FIXES" ]; then
+            echo "### Bug Fixes" >> notes.md
+            echo "$FIXES" >> notes.md
+          fi
+          if [ -n "$OTHER" ]; then
+            echo "### Other Changes" >> notes.md
+            echo "$OTHER" >> notes.md
+          fi
+
+          # Closed issues (extract from "Fixes #N" / "Closes #N" in commit bodies)
+          ISSUES=""
+          while IFS= read -r hash; do
+            for NUM in $(git log -1 --format='%B' "$hash" | grep -oiE '(fix(es)?|close[sd]?) #[0-9]+' | grep -oE '[0-9]+'); do
+              ISSUE_LINE=$(gh issue view "$NUM" --json title,author --jq '"- #'"$NUM"' \(.title) — @\(.author.login)"' 2>/dev/null)
+              if [ -n "$ISSUE_LINE" ]; then
+                ISSUES="${ISSUES}${ISSUE_LINE}"$'\n'
+              fi
+            done
+          done < <(git log --pretty=format:"%h" "${PREV_TAG}..${TAG}")
+          if [ -n "$ISSUES" ]; then
+            ISSUES=$(echo "$ISSUES" | sort -u)
+            echo "## Issues Closed" >> notes.md
+            echo "$ISSUES" >> notes.md
+            echo "" >> notes.md
+          fi
+
+          # Contributors
+          echo "## Contributors" >> notes.md
+          git log --pretty=format:"%an" "${PREV_TAG}..${TAG}" | sort -u | while read -r name; do
+            echo "- @${name}" >> notes.md
+          done
+          echo "" >> notes.md
 
       - name: Download librespot
         uses: actions/download-artifact@v4
@@ -104,4 +169,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: Deckify.tar.gz
-          generate_release_notes: true
+          body_path: notes.md
