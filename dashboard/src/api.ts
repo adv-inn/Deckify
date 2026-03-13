@@ -1,6 +1,6 @@
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return jsonOrThrow(res);
+  return res.json();
 }
 
 export interface TrackMeta {
