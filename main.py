@@ -29,6 +29,8 @@ DEFAULT_SETTINGS = {
     "device_name": "Steam Deck",
     "bitrate": 320,
     "spotify_client_id": "",
+    "volume": 50,
+    "output_gain": 100,
 }
 
 # PulseAudio socket for root processes (deck user UID 1000)
@@ -206,7 +208,8 @@ class Plugin:
     _token_refresh_lock: asyncio.Lock | None = None
     # Crash auto-restart state
     _crash_timestamps: list = []
-    _pa_volume_boosted: bool = False
+    _pa_sink_input_id: str | None = None
+    _applied_output_gain: int | None = None
     _stable_start: float = 0
 
     # ── Lifecycle ──────────────────────────────────────────────
@@ -279,6 +282,7 @@ class Plugin:
             "--name", settings.get("device_name", "Steam Deck"),
             "--device-type", "computer",
             "--bitrate", str(settings.get("bitrate", 320)),
+            "--initial-volume", str(settings.get("volume", 50)),
             "--backend", "pulseaudio",
             "--system-cache", CACHE_DIR,
         ]
@@ -301,7 +305,8 @@ class Plugin:
             return {"ok": False, "error": msg}
 
         self._last_event = None
-        self._pa_volume_boosted = False
+        self._pa_sink_input_id = None
+        self._applied_output_gain = None
         self._write_pid(self._process.pid)
         self._start_monitor()
         await decky.emit("librespot_status", {"running": True, "error": None})
@@ -324,13 +329,14 @@ class Plugin:
             "running": running,
             "binary_found": os.path.isfile(LIBRESPOT_BIN),
             "settings": {k: v for k, v in self._settings.items()
-                         if k in ("device_name", "bitrate", "spotify_client_id")},
+                          if k in ("device_name", "bitrate", "spotify_client_id", "volume", "output_gain")},
             "last_event": self._last_event,
             "track_meta": self._track_meta,
             "active_device": self._active_device,
             "is_playing": is_playing,
             "position_ms": position_ms,
             "duration_ms": duration_ms,
+            "volume": self._poll_volume,
         }
 
     async def get_settings(self) -> dict:
@@ -339,9 +345,23 @@ class Plugin:
     async def set_setting(self, key: str, value) -> dict:
         if key not in DEFAULT_SETTINGS:
             return {"ok": False, "error": f"unknown setting: {key}"}
+        if key == "volume":
+            try:
+                value = max(0, min(100, int(value)))
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "volume must be between 0 and 100"}
+        elif key == "output_gain":
+            try:
+                value = int(value)
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "output_gain must be between 50 and 150"}
+            if not 50 <= value <= 150:
+                return {"ok": False, "error": "output_gain must be between 50 and 150"}
         self._settings[key] = value
         _save_settings(self._settings)
         decky.logger.info("Setting updated: %s = %s", key, value)
+        if key == "output_gain" and self._process and self._process.poll() is None:
+            await self._apply_output_gain()
         return {"ok": True, "settings": dict(self._settings)}
 
     # ── Playback control callable methods ────────────────────────
@@ -410,6 +430,9 @@ class Plugin:
                 _spotify_api_request, "me/player/volume", token, "PUT",
                 {"volume_percent": volume_percent},
             )
+            self._poll_volume = volume_percent
+            self._settings["volume"] = volume_percent
+            _save_settings(self._settings)
             return {"ok": True}
         except urllib.error.HTTPError as e:
             if e.code == 404:
@@ -1414,11 +1437,12 @@ class Plugin:
 
         return True
 
-    async def _boost_pa_volume(self):
-        """Set librespot's PulseAudio sink-input to 150% for audible volume."""
+    async def _apply_output_gain(self):
+        """Apply the configured gain once per librespot sink-input and value."""
         if not self._process:
             return
         pid = self._process.pid
+        output_gain = self._settings.get("output_gain", 100)
         try:
             env = os.environ.copy()
             env["PULSE_SERVER"] = PULSE_SERVER
@@ -1439,19 +1463,36 @@ class Plugin:
                 elif "application.process.id" in line and f'"{pid}"' in line:
                     sink_input_id = current_id
                     break
-            if sink_input_id:
+            if not sink_input_id:
+                self._pa_sink_input_id = None
+                self._applied_output_gain = None
+                return
 
-                def _set_vol():
-                    return subprocess.run(
-                        ["pactl", "set-sink-input-volume", sink_input_id, "150%"],
-                        capture_output=True, text=True, env=env,
-                    )
+            if (
+                sink_input_id == self._pa_sink_input_id
+                and output_gain == self._applied_output_gain
+            ):
+                return
 
-                await _exec(_set_vol)
-                decky.logger.info("PA volume boosted to 150%% for sink-input %s", sink_input_id)
-                self._pa_volume_boosted = True
+            def _set_vol():
+                return subprocess.run(
+                    ["pactl", "set-sink-input-volume", sink_input_id, f"{output_gain}%"],
+                    capture_output=True, text=True, env=env,
+                )
+
+            set_result = await _exec(_set_vol)
+            if set_result.returncode != 0:
+                decky.logger.warning(
+                    "Failed to apply output gain: %s", set_result.stderr.strip(),
+                )
+                return
+            self._pa_sink_input_id = sink_input_id
+            self._applied_output_gain = output_gain
+            decky.logger.info(
+                "Output gain set to %d%% for sink-input %s", output_gain, sink_input_id,
+            )
         except Exception as e:
-            decky.logger.warning("Failed to boost PA volume: %s", e)
+            decky.logger.warning("Failed to apply output gain: %s", e)
 
     async def _monitor_process(self):
         """Monitor librespot process health and detect system sleep/wake."""
@@ -1523,8 +1564,8 @@ class Plugin:
                         })
                         break
 
-                if not self._pa_volume_boosted:
-                    await self._boost_pa_volume()
+                if self._applied_output_gain != self._settings.get("output_gain", 100):
+                    await self._apply_output_gain()
 
                 await asyncio.sleep(3)
         except asyncio.CancelledError:
