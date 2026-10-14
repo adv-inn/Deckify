@@ -13,6 +13,7 @@
 - **Spotify Connect** — Steam Deck appears as a Spotify Connect device via [librespot](https://github.com/librespot-org/librespot)
 - **Playback Controls** — Play/pause, skip, previous, volume from the Quick Access panel
 - **Device Management** — View and transfer playback between Spotify Connect devices
+- **Custom Device Name** — Set the Spotify Connect display name or use the system hostname
 - **Web Dashboard** — Full Now Playing UI with library browsing in the Steam browser
 - **OAuth (PKCE)** — Secure Spotify login via QR code, no server required
 
@@ -30,7 +31,7 @@
 |:--:|
 | ![Dashboard](assets/dashboard.jpg) |
 
-## Install
+## Install / Update
 
 Requires [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) installed on your Steam Deck.
 
@@ -38,21 +39,27 @@ Requires [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) insta
 curl -fsSL https://deckify.advinn.co/install.sh | sh
 ```
 
-To uninstall:
+The same command updates an existing installation to the [latest published release](https://github.com/adv-inn/Deckify/releases/latest), preserving settings and saved login data.
+
+## Uninstall
+
+Remove the plugin while keeping its settings and data for reinstallation:
 
 ```bash
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 ```
 
-This keeps settings and data for reinstallation. To also delete saved login credentials, settings, cache, certificates, and logs (including legacy locations), use:
+To also delete saved login credentials, settings, cache, certificates, and logs (including legacy locations), explicitly opt into data removal:
 
 ```bash
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge
 ```
 
-`--purge` also works after the plugin has been removed. It deletes local Deckify data, not backups you made separately, and does not revoke the app's access on Spotify. Both modes briefly stop and start Decky Loader when uninstalling.
+`--purge` can also clean up local Deckify data after the plugin has been removed. Both uninstall modes briefly stop and restart Decky Loader.
 
-In Deckify's **Settings → Device name**, enter a custom Spotify Connect name and save it, then select **Restart Now** if playback is running. Leave the field empty to use the system hostname. Existing custom names are preserved; the old automatic “Steam Deck” name switches to the system hostname. Changing this display name does not change the hostname or OAuth redirect URI.
+## Device Name
+
+In Deckify's **Settings → Device name**, enter a custom Spotify Connect name and select **Save**. If the Spotify Connect service is running, select **Restart Now** to apply it. Leave the field empty and save to use the system hostname.
 
 ## Spotify Account Setup
 
@@ -69,21 +76,14 @@ Each user must register a Spotify App at [developer.spotify.com](https://develop
 2. Copy the **Client ID** and enter it in the plugin's Spotify Login flow
 3. When scanning the QR code, your browser may show a certificate security warning — this is expected (self-signed cert for local HTTPS). Proceed to continue.
 4. The redirect URI must match exactly, including hostname capitalization. Use the URI shown on the login page even if you did not change your hostname.
-5. Spotify development mode limits each Client ID to 5 authorized users
-
-> **Note:** Devices running OpenHarmony are not supported at this time due to the lack of mDNS / Zeroconf discovery.
-
-## Known Issues
-
-- **Device list delayed after wake from sleep** — When the Steam Deck wakes from suspend, librespot needs a few seconds to restart and re-register with Spotify. During this window, the device list may only show other devices. Wait a moment and refresh.
-- **Device selector not updating instantly** — After switching devices in the dropdown, the selection may briefly stay on the previous device. This is due to Spotify API propagation delay — the new active device will reflect after a short wait.
 
 ## Development
 
 ### Prerequisites
 
-- Node.js v16.14+
+- Node.js 20.19+ on the 20.x line (matching CI), 22.13+ on the 22.x line, or 24+
 - pnpm v9
+- Python 3.11+ to run the backend tests
 
 ### Build
 
@@ -91,6 +91,16 @@ Each user must register a Spotify App at [developer.spotify.com](https://develop
 pnpm i
 pnpm run build    # builds plugin frontend + dashboard
 ```
+
+### Checks
+
+```bash
+python -m unittest discover -s tests -v
+pnpm run typecheck
+pnpm run lint
+```
+
+The uninstall tests mock privileged commands; they do not remove the installed plugin or its data.
 
 ### Deploy to Steam Deck
 

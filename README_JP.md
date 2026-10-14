@@ -13,6 +13,7 @@
 - **Spotify Connect** — [librespot](https://github.com/librespot-org/librespot) により Steam Deck を Spotify Connect デバイスとして利用可能
 - **再生コントロール** — クイックアクセスパネルから再生/一時停止、スキップ、前の曲、音量を操作
 - **デバイス管理** — Spotify Connect デバイスの一覧表示と再生先の切り替え
+- **デバイス名のカスタマイズ** — Spotify Connect の表示名を設定、またはシステムのホスト名を使用
 - **Web ダッシュボード** — Steam ブラウザ上でフル機能の再生 UI とライブラリ閲覧
 - **OAuth (PKCE)** — QR コードによる安全な Spotify ログイン、サーバー不要
 
@@ -30,7 +31,7 @@
 |:--:|
 | ![Dashboard](assets/dashboard.jpg) |
 
-## インストール
+## インストール / 更新
 
 Steam Deck に [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) がインストールされている必要があります。
 
@@ -38,21 +39,27 @@ Steam Deck に [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader)
 curl -fsSL https://deckify.advinn.co/install.sh | sh
 ```
 
-アンインストール：
+同じコマンドで既存のインストールを[最新リリース](https://github.com/adv-inn/Deckify/releases/latest)に更新できます。設定とログイン情報は保持されます。
+
+## アンインストール
+
+再インストール用に設定とデータを保持してプラグインを削除します：
 
 ```bash
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 ```
 
-通常は再インストール用に設定とデータを保持します。ログイン情報、設定、キャッシュ、証明書、ログ（旧バージョンの保存先を含む）も削除するには、次を実行してください：
+ログイン情報、設定、キャッシュ、証明書、ログ（旧バージョンの保存先を含む）も削除する場合は、`--purge` を追加してください：
 
 ```bash
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge
 ```
 
-プラグインを削除済みの場合も `--purge` を利用できます。別途作成したバックアップや Spotify 側のアプリ認可は削除しません。アンインストール時は、どちらのモードも Decky Loader を一時停止して再起動します。
+プラグインを削除済みの場合も、`--purge` でローカルの Deckify データを削除できます。どちらのモードも、アンインストール時に Decky Loader を一時停止して再起動します。
 
-Deckify の **Settings → Device name** で Spotify Connect の表示名を入力して保存し、実行中の場合は **Restart Now** を選択してください。空欄ならシステムのホスト名を使用します。既存のカスタム名は保持し、旧バージョンの既定名「Steam Deck」はホスト名に切り替わります。表示名を変えてもホスト名や OAuth のリダイレクト URI は変わりません。
+## デバイス名
+
+Deckify の **Settings → Device name** に Spotify Connect の表示名を入力し、**Save** を選択してください。Spotify Connect サービスが実行中の場合は、**Restart Now** で変更を適用します。空欄で保存すると、システムのホスト名を使用します。
 
 ## Spotify アカウント設定
 
@@ -69,21 +76,14 @@ Deckify の **Settings → Device name** で Spotify Connect の表示名を入�
 2. **Client ID** をコピーし、プラグインの Spotify ログインフローで入力
 3. QR コードをスキャンする際、ブラウザが証明書のセキュリティ警告を表示する場合があります。これは正常です（ローカル HTTPS の自己署名証明書）。そのまま続行してください。
 4. Redirect URI はホスト名の大文字・小文字も含めて完全に一致する必要があります。ホスト名を変更していない場合も、ログイン画面に表示される URI を使用してください。
-5. Spotify 開発者モードでは、各 Client ID につき 5 人の認証ユーザーに制限されています
-
-> **注意：** OpenHarmony を搭載したデバイスは、mDNS / Zeroconf が未対応のため、現時点では本プラグインを利用できません。
-
-## 既知の問題
-
-- **スリープ復帰後のデバイスリスト遅延** — Steam Deck がスリープから復帰した際、librespot の再起動と Spotify への再登録に数秒かかります。この間、デバイスリストには他のデバイスのみが表示される場合があります。しばらく待ってから更新してください。
-- **デバイス切り替えの即時反映なし** — ドロップダウンでデバイスを切り替えた後、選択状態が一時的に前のデバイスのまま表示される場合があります。これは Spotify API の伝播遅延によるもので、しばらくすると更新されます。
 
 ## 開発
 
 ### 前提条件
 
-- Node.js v16.14+
+- Node.js 20.19+（20.x、CI と同じ）、22.13+（22.x）、または 24+
 - pnpm v9
+- Python 3.11+（バックエンドテスト用）
 
 ### ビルド
 
@@ -91,6 +91,16 @@ Deckify の **Settings → Device name** で Spotify Connect の表示名を入�
 pnpm i
 pnpm run build    # プラグインフロントエンド + ダッシュボードをビルド
 ```
+
+### チェック
+
+```bash
+python -m unittest discover -s tests -v
+pnpm run typecheck
+pnpm run lint
+```
+
+アンインストールのテストでは特権コマンドをモック化しているため、インストール済みのプラグインやデータは削除されません。
 
 ### Steam Deck へのデプロイ
 
