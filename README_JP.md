@@ -44,6 +44,16 @@ curl -fsSL https://deckify.advinn.co/install.sh | sh
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 ```
 
+通常は再インストール用に設定とデータを保持します。ログイン情報、設定、キャッシュ、証明書、ログ（旧バージョンの保存先を含む）も削除するには、次を実行してください：
+
+```bash
+curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge
+```
+
+プラグインを削除済みの場合も `--purge` を利用できます。別途作成したバックアップや Spotify 側のアプリ認可は削除しません。アンインストール時は、どちらのモードも Decky Loader を一時停止して再起動します。
+
+Deckify の **Settings → Device name** で Spotify Connect の表示名を入力して保存し、実行中の場合は **Restart Now** を選択してください。空欄ならシステムのホスト名を使用します。既存のカスタム名は保持し、旧バージョンの既定名「Steam Deck」はホスト名に切り替わります。表示名を変えてもホスト名や OAuth のリダイレクト URI は変わりません。
+
 ## Spotify アカウント設定
 
 各ユーザーは [developer.spotify.com](https://developer.spotify.com) で Spotify App を登録する必要があります：
