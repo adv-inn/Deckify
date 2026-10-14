@@ -51,14 +51,14 @@ curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 1. 创建新应用，填写以下信息：
    - **App name:** `Deckify`
    - **App description:** `Deckify`
-   - **Redirect URI:** `https://steamdeck.local:39281/callback`
+   - **Redirect URI：**复制 Deckify Spotify 登录页面显示的完整地址（主机名为小写 `steamdeck` 时，地址为 `https://steamdeck.local:39281/callback`）
    - 勾选 **Web API**
 
    ![Create App](assets/createApp.png)
 
 2. 复制 **Client ID**，在插件的 Spotify 登录流程中输入
 3. 扫描二维码时，浏览器可能会显示证书安全警告——这是正常现象（本地 HTTPS 使用自签名证书），点击继续访问即可
-4. 如果你修改过 Steam Deck 的主机名，请相应替换 Redirect URI 中的 `steamdeck`
+4. Redirect URI 必须完全一致，包括主机名大小写。即使你没有修改主机名，也请以登录页面显示的地址为准。
 5. Spotify 开发者模式下，每个 Client ID 限制 5 个授权用户
 
 > **注意：** 运行 OpenHarmony 的设备由于缺少 mDNS / Zeroconf 支持，暂时无法使用本插件。

@@ -10,6 +10,7 @@ import subprocess
 import time
 import urllib.parse
 import urllib.request
+from html import escape
 
 import decky
 
@@ -42,6 +43,7 @@ CURRENT_SCOPES_VERSION = 4
 OAUTH_SERVER_PORT = 39281
 DASHBOARD_PORT = 39282
 DASHBOARD_DIR = os.path.join(decky.DECKY_PLUGIN_DIR, "dashboard", "dist")
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 # SSL context for outgoing HTTPS requests (Spotify API).
 # Root environments on SteamOS may not find system CA certs automatically.
@@ -52,6 +54,43 @@ for _ca in ("/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/cert.pem"):
         break
 if _API_SSL_CTX is None:
     _API_SSL_CTX = ssl.create_default_context()
+
+
+def _validate_image_url(url: str) -> None:
+    parsed = urllib.parse.urlsplit(url)
+    host = parsed.hostname or ""
+    if (parsed.scheme != "https" or parsed.port not in (None, 443)
+            or parsed.username is not None or parsed.password is not None
+            or not host.endswith((".scdn.co", ".spotifycdn.com"))):
+        raise ValueError("Only Spotify HTTPS image URLs are supported")
+
+
+class _ImageRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_image_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _fetch_spotify_image(url: str) -> tuple[str, bytes]:
+    _validate_image_url(url)
+    opener = urllib.request.build_opener(
+        _ImageRedirectHandler(), urllib.request.HTTPSHandler(context=_API_SSL_CTX),
+    )
+    with opener.open(url, timeout=10) as response:
+        content_type = response.headers.get_content_type()
+        if content_type not in ("image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"):
+            raise RuntimeError("Spotify returned an unsupported image format")
+        body = response.read(MAX_IMAGE_BYTES + 1)
+        if len(body) > MAX_IMAGE_BYTES:
+            raise RuntimeError("Spotify image exceeds the size limit")
+        return content_type, body
+
+
+def _image_url(images: list) -> str | None:
+    if not images:
+        return None
+    query = urllib.parse.urlencode({"url": images[0]["url"]})
+    return f"http://127.0.0.1:{DASHBOARD_PORT}/api/image?{query}"
 
 
 def _load_settings() -> dict:
@@ -197,6 +236,7 @@ class Plugin:
     _access_token: str | None = None
     _refresh_token: str | None = None
     _token_expires_at: float = 0
+    _token_retry_at: float = 0
     # Playback poll state
     _poll_play_state: str | None = None   # "playing" | "paused" | None
     _poll_track_id: str | None = None
@@ -327,6 +367,7 @@ class Plugin:
                          if k in ("device_name", "bitrate", "spotify_client_id")},
             "last_event": self._last_event,
             "track_meta": self._track_meta,
+            "volume": self._poll_volume,
             "active_device": self._active_device,
             "is_playing": is_playing,
             "position_ms": position_ms,
@@ -434,7 +475,7 @@ class Plugin:
                 playlists.append({
                     "id": p["id"],
                     "name": p.get("name", ""),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                     "track_count": (p.get("items") or p.get("tracks") or {}).get("total", 0),
                     "owner_id": p.get("owner", {}).get("id", ""),
                 })
@@ -469,7 +510,7 @@ class Plugin:
                     "album": t.get("album", {}).get("name", ""),
                     "uri": t.get("uri", ""),
                     "duration_ms": t.get("duration_ms", 0),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             total = data.get("total", 0) if data else 0
             return {"ok": True, "tracks": tracks, "total": total, "offset": offset}
@@ -501,7 +542,7 @@ class Plugin:
                     "album": t.get("album", {}).get("name", ""),
                     "uri": t.get("uri", ""),
                     "duration_ms": t.get("duration_ms", 0),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             total = data.get("total", 0) if data else 0
             return {"ok": True, "tracks": tracks, "total": total, "offset": offset}
@@ -531,7 +572,7 @@ class Plugin:
                     "show_name": ep.get("show", {}).get("name", ""),
                     "uri": ep.get("uri", ""),
                     "duration_ms": ep.get("duration_ms", 0),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             total = data.get("total", 0) if data else 0
             return {"ok": True, "episodes": episodes, "total": total, "offset": offset}
@@ -560,7 +601,7 @@ class Plugin:
                     "id": a["id"],
                     "name": a.get("name", ""),
                     "artist": artists,
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                     "track_count": a.get("total_tracks", 0),
                     "uri": a.get("uri", ""),
                 })
@@ -616,7 +657,7 @@ class Plugin:
                 artists.append({
                     "id": a["id"],
                     "name": a.get("name", ""),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             return {"ok": True, "artists": artists}
         except Exception as e:
@@ -642,7 +683,7 @@ class Plugin:
                     "id": a["id"],
                     "name": a.get("name", ""),
                     "artist": ar,
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                     "track_count": a.get("total_tracks", 0),
                     "uri": a.get("uri", ""),
                 })
@@ -671,14 +712,14 @@ class Plugin:
                     "id": t.get("id"), "name": t.get("name", ""), "artist": artists,
                     "album": t.get("album", {}).get("name", ""), "uri": t.get("uri", ""),
                     "duration_ms": t.get("duration_ms", 0),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             artists_out = []
             for a in data.get("artists", {}).get("items", []):
                 images = a.get("images") or []
                 artists_out.append({
                     "id": a["id"], "name": a.get("name", ""),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                 })
             albums_out = []
             for a in data.get("albums", {}).get("items", []):
@@ -686,7 +727,7 @@ class Plugin:
                 ar = ", ".join(x["name"] for x in a.get("artists", []))
                 albums_out.append({
                     "id": a["id"], "name": a.get("name", ""), "artist": ar,
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                     "track_count": a.get("total_tracks", 0), "uri": a.get("uri", ""),
                 })
             playlists_out = []
@@ -696,7 +737,7 @@ class Plugin:
                 images = p.get("images") or []
                 playlists_out.append({
                     "id": p["id"], "name": p.get("name", ""),
-                    "image_url": images[0]["url"] if images else None,
+                    "image_url": _image_url(images),
                     "track_count": (p.get("items") or p.get("tracks") or {}).get("total", 0),
                     "owner_id": p.get("owner", {}).get("id", ""),
                 })
@@ -809,6 +850,8 @@ class Plugin:
         return {"ok": True}
 
     async def get_dashboard_url(self) -> dict:
+        if self._dashboard_server is None:
+            return {"ok": False, "error": "Dashboard server is unavailable"}
         return {"ok": True, "url": f"http://127.0.0.1:{DASHBOARD_PORT}"}
 
     # ── Dashboard server ──────────────────────────────────────
@@ -871,6 +914,8 @@ class Plugin:
             # API routes
             if path == "/api/status":
                 await self._api_status(writer)
+            elif path == "/api/image" and method == "GET":
+                await self._serve_image(writer, qs.get("url", [""])[0])
             elif path == "/api/control" and method == "POST":
                 action = qs.get("action", [None])[0]
                 if not action:
@@ -955,6 +1000,26 @@ class Plugin:
             except Exception:
                 pass
 
+    async def _serve_image(self, writer: asyncio.StreamWriter, url: str):
+        try:
+            content_type, body = await _exec(_fetch_spotify_image, url)
+        except ValueError as error:
+            await self._send_json(writer, 400, {"error": str(error)})
+            return
+        except Exception as error:
+            decky.logger.warning("Cover image download failed: %s", error)
+            await self._send_json(writer, 502, {"error": "Cover image is unavailable"})
+            return
+        header = (
+            "HTTP/1.1 200 OK\r\n"
+            f"Content-Type: {content_type}\r\nContent-Length: {len(body)}\r\n"
+            "Cache-Control: public, max-age=86400\r\n"
+            "Connection: close\r\n\r\n"
+        )
+        writer.write(header.encode() + body)
+        await writer.drain()
+        writer.close()
+
     async def _api_status(self, writer: asyncio.StreamWriter):
         running = self._process is not None and self._process.poll() is None
         is_playing = self._poll_play_state == "playing"
@@ -978,7 +1043,7 @@ class Plugin:
         await self._send_json(writer, 200, data)
 
     async def _send_json(self, writer: asyncio.StreamWriter, status: int, data: dict):
-        reason = {200: "OK", 204: "No Content", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error"}.get(status, "OK")
+        reason = {200: "OK", 204: "No Content", 400: "Bad Request", 404: "Not Found", 500: "Internal Server Error", 502: "Bad Gateway"}.get(status, "OK")
         body = json.dumps(data).encode()
         header = f"HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {len(body)}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
         writer.write(header.encode() + body)
@@ -1178,6 +1243,7 @@ class Plugin:
             self._access_token = token_data["access_token"]
             self._refresh_token = token_data.get("refresh_token")
             self._token_expires_at = time.time() + token_data.get("expires_in", 3600) - 60
+            self._token_retry_at = 0
             self._settings["access_token"] = self._access_token
             self._settings["refresh_token"] = self._refresh_token
             self._settings["token_expires_at"] = self._token_expires_at
@@ -1206,9 +1272,6 @@ class Plugin:
 
     async def _send_landing_page(self, writer: asyncio.StreamWriter):
         client_id = self._settings.get("spotify_client_id", "").strip()
-        if client_id:
-            await self._redirect_to_spotify(client_id, writer)
-            return
         redirect_uri = self._oauth_redirect_uri or ""
         html = (
             '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -1220,12 +1283,13 @@ class Plugin:
             '<p style="color:#b3b3b3;margin-bottom:24px">Connect your Spotify account to your Steam Deck</p>'
             '<form action="/auth" method="get" style="text-align:left">'
             '<label style="display:block;color:#b3b3b3;font-size:14px;margin-bottom:6px">Spotify Client ID</label>'
-            '<input name="client_id" type="text" required placeholder="e.g. a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"'
+            f'<input name="client_id" type="text" required value="{escape(client_id, quote=True)}"'
+            ' placeholder="e.g. a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"'
             ' style="width:100%;padding:12px;border:1px solid #333;border-radius:8px;'
             'background:#1a1a1a;color:#fff;font-size:14px;box-sizing:border-box;margin-bottom:16px">'
             '<p style="color:#666;font-size:12px;margin:0 0 16px">'
             'Redirect URI for your Spotify App settings:<br>'
-            f'<code style="color:#999;word-break:break-all">{redirect_uri}</code></p>'
+            f'<code style="color:#999;word-break:break-all">{escape(redirect_uri)}</code></p>'
             '<button type="submit" style="width:100%;padding:14px;border:none;border-radius:24px;'
             'background:#1DB954;color:#fff;font-size:16px;font-weight:600;cursor:pointer">Continue</button>'
             '</form>'
@@ -1298,6 +1362,8 @@ class Plugin:
             # Double-check after acquiring lock — another coroutine may have refreshed
             if time.time() < self._token_expires_at:
                 return self._access_token
+            if not self._refresh_token or time.monotonic() < self._token_retry_at:
+                return None
             try:
                 client_id = self._settings.get("spotify_client_id", "").strip()
                 token_data = await _exec(_spotify_token_request, {
@@ -1315,7 +1381,26 @@ class Plugin:
                 _save_settings(self._settings)
                 decky.logger.info("Token refreshed successfully")
                 return self._access_token
+            except urllib.error.HTTPError as e:
+                self._token_retry_at = time.monotonic() + 30
+                try:
+                    error = json.loads(e.read()).get("error")
+                except (ValueError, AttributeError, OSError):
+                    error = None
+                if e.code in (400, 401) and error in ("invalid_grant", "invalid_client"):
+                    self._access_token = None
+                    self._refresh_token = None
+                    self._token_expires_at = 0
+                    for key in ("access_token", "refresh_token", "token_expires_at"):
+                        self._settings.pop(key, None)
+                    _save_settings(self._settings)
+                    decky.logger.warning("Spotify authorization expired (%s); reconnect required", error)
+                    await decky.emit("auth_expired")
+                else:
+                    decky.logger.error("Token refresh failed: HTTP %s; retrying in 30s", e.code)
+                return None
             except Exception as e:
+                self._token_retry_at = time.monotonic() + 30
                 decky.logger.error("Token refresh failed: %s", e)
                 return None
 
@@ -1326,7 +1411,7 @@ class Plugin:
             return True  # not a network issue
 
         try:
-            data = await _exec(_spotify_api_request, "me/player", token)
+            data = await _exec(_spotify_api_request, "me/player", token, "GET", {"additional_types": "episode"})
         except urllib.error.HTTPError as e:
             if e.code == 401:
                 self._token_expires_at = 0  # force refresh on next call
@@ -1358,14 +1443,22 @@ class Plugin:
 
         if track_id != self._poll_track_id:
             self._poll_track_id = track_id
-            artists = ", ".join(a["name"] for a in item.get("artists", []))
-            images = item.get("album", {}).get("images", [])
-            artwork_url = images[0]["url"] if images else None
+            if item.get("type") == "episode":
+                show = item.get("show") or {}
+                artist = show.get("name") or "Unknown"
+                album_name = ""
+                images = item.get("images") or show.get("images") or []
+            else:
+                album = item.get("album") or {}
+                artist = ", ".join(a["name"] for a in item.get("artists", [])) or "Unknown"
+                album_name = album.get("name", "")
+                images = album.get("images") or []
+            artwork_url = _image_url(images)
             meta = {
                 "track_id": track_id,
                 "name": item.get("name", "Unknown"),
-                "artist": artists or "Unknown",
-                "album": item.get("album", {}).get("name", ""),
+                "artist": artist,
+                "album": album_name,
                 "artwork_url": artwork_url,
                 "duration_ms": duration_ms,
             }

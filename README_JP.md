@@ -51,14 +51,14 @@ curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 1. 以下の設定で新しいアプリを作成：
    - **App name:** `Deckify`
    - **App description:** `Deckify`
-   - **Redirect URI:** `https://steamdeck.local:39281/callback`
+   - **Redirect URI:** Deckify の Spotify ログイン画面に表示される URI をそのまま登録してください（ホスト名が小文字の `steamdeck` なら `https://steamdeck.local:39281/callback`）
    - **Web API** にチェック
 
    ![Create App](assets/createApp.png)
 
 2. **Client ID** をコピーし、プラグインの Spotify ログインフローで入力
 3. QR コードをスキャンする際、ブラウザが証明書のセキュリティ警告を表示する場合があります。これは正常です（ローカル HTTPS の自己署名証明書）。そのまま続行してください。
-4. Steam Deck のホスト名を変更している場合は、Redirect URI の `steamdeck` を適宜置き換えてください
+4. Redirect URI はホスト名の大文字・小文字も含めて完全に一致する必要があります。ホスト名を変更していない場合も、ログイン画面に表示される URI を使用してください。
 5. Spotify 開発者モードでは、各 Client ID につき 5 人の認証ユーザーに制限されています
 
 > **注意：** OpenHarmony を搭載したデバイスは、mDNS / Zeroconf が未対応のため、現時点では本プラグインを利用できません。

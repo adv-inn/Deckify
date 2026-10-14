@@ -9,6 +9,7 @@ import {
   SliderField,
   Focusable,
   DialogButton,
+  Navigation,
   staticClasses,
 } from "@decky/ui";
 import {
@@ -33,6 +34,7 @@ const backendGetStatus = callable<[], {
   is_playing: boolean;
   position_ms: number;
   duration_ms: number;
+  volume: number | null;
 }>("get_status");
 const backendSetSetting = callable<[string, any], { ok: boolean; settings?: Settings }>("set_setting");
 const backendStartOAuth = callable<[], { ok: boolean; landing_url?: string; redirect_uri?: string; error?: string }>("start_oauth");
@@ -40,7 +42,7 @@ const backendGetAuthStatus = callable<[], { authenticated: boolean; needs_reauth
 const backendLogout = callable<[], { ok: boolean }>("logout_spotify");
 const backendControlPlayback = callable<[string, string], { ok: boolean; error?: string }>("control_playback");
 const backendSetVolume = callable<[number], { ok: boolean; error?: string }>("set_volume");
-const backendGetDashboardUrl = callable<[], { ok: boolean; url: string }>("get_dashboard_url");
+const backendGetDashboardUrl = callable<[], { ok: boolean; url?: string; error?: string }>("get_dashboard_url");
 const backendGetDevices = callable<[], { ok: boolean; devices?: SpotifyDevice[]; error?: string }>("get_devices");
 const backendTransferPlayback = callable<[string], { ok: boolean; error?: string }>("transfer_playback");
 
@@ -88,7 +90,7 @@ const BITRATE_OPTIONS = [
   { data: 320, label: "320 kbps" },
 ];
 
-function playerEventToLabel(event: string | undefined): string {
+function playerEventToLabel(event: string | undefined, isPlaying: boolean): string {
   switch (event) {
     case "playing":
     case "started":
@@ -102,7 +104,7 @@ function playerEventToLabel(event: string | undefined): string {
     case "preloading":
       return "Loading";
     case "volume_set":
-      return "Playing";
+      return isPlaying ? "Playing" : "Paused";
     default:
       return event ?? "Unknown";
   }
@@ -142,6 +144,7 @@ const Content: FC = () => {
       setBinaryFound(status.binary_found);
       setSettings(status.settings);
       setLastEvent(status.last_event);
+      if (status.volume != null) setVolume(status.volume);
       if (status.track_meta) {
         setTrackMeta(status.track_meta);
       }
@@ -214,6 +217,19 @@ const Content: FC = () => {
       setTrackMeta(meta);
     };
 
+    const onAuthExpired = () => {
+      setAuthenticated(false);
+      setNeedsReauth(false);
+      setDevices([]);
+      activeDeviceIdRef.current = "";
+      toaster.toast({
+        title: "Deckify",
+        body: "Spotify authorization expired. Please connect your account again.",
+        duration: 5000,
+        icon: <FaSpotify />,
+      });
+    };
+
     const onDeviceChanged = () => {
       backendGetDevices().then((r) => { if (r.ok && r.devices && r.devices.length > 0) updateDevices(r.devices); });
     };
@@ -221,6 +237,7 @@ const Content: FC = () => {
     const regStatus = addEventListener<[StatusPayload]>("librespot_status", onStatus);
     const regEvent = addEventListener<[LibrespotEvent]>("librespot_event", onEvent);
     const regOAuth = addEventListener<[{ authenticated: boolean }]>("oauth_complete", onOAuthComplete);
+    const regAuthExpired = addEventListener("auth_expired", onAuthExpired);
     const regMeta = addEventListener<[TrackMetadata]>("track_metadata", onTrackMeta);
     const regDevice = addEventListener("device_changed", onDeviceChanged);
 
@@ -228,6 +245,7 @@ const Content: FC = () => {
       removeEventListener("librespot_status", regStatus);
       removeEventListener("librespot_event", regEvent);
       removeEventListener("oauth_complete", regOAuth);
+      removeEventListener("auth_expired", regAuthExpired);
       removeEventListener("track_metadata", regMeta);
       removeEventListener("device_changed", regDevice);
     };
@@ -348,7 +366,7 @@ const handleToggle = useCallback(async (checked: boolean) => {
     setRestartNeeded(false);
   }, []);
 
-  const playState = lastEvent ? playerEventToLabel(lastEvent.event) : "Idle";
+  const playState = lastEvent ? playerEventToLabel(lastEvent.event, isPlaying) : "Idle";
   const trackId = lastEvent?.track_id ?? "—";
   const showRichMedia = (authenticated || running) && trackMeta;
   return (
@@ -535,9 +553,15 @@ const handleToggle = useCallback(async (checked: boolean) => {
             label="Dashboard"
             description="Open full control panel in browser"
             onClick={async () => {
-              const res = await backendGetDashboardUrl();
-              if (res.ok) {
-                (window as any).SteamClient?.System?.OpenInSystemBrowser?.(res.url);
+              try {
+                const res = await backendGetDashboardUrl();
+                if (res.ok && res.url) {
+                  Navigation.NavigateToExternalWeb(res.url);
+                } else {
+                  toaster.toast({ title: "Deckify", body: res.error ?? "Dashboard is unavailable", duration: 5000 });
+                }
+              } catch (error) {
+                toaster.toast({ title: "Deckify", body: String(error), duration: 5000 });
               }
             }}
           >

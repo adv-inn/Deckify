@@ -51,14 +51,14 @@ Each user must register a Spotify App at [developer.spotify.com](https://develop
 1. Create a new app with the following settings:
    - **App name:** `Deckify`
    - **App description:** `Deckify`
-   - **Redirect URI:** `https://steamdeck.local:39281/callback`
+   - **Redirect URI:** Copy the exact URI shown on Deckify's Spotify Login page (for a lowercase `steamdeck` hostname: `https://steamdeck.local:39281/callback`)
    - Check **Web API**
 
    ![Create App](assets/createApp.png)
 
 2. Copy the **Client ID** and enter it in the plugin's Spotify Login flow
 3. When scanning the QR code, your browser may show a certificate security warning — this is expected (self-signed cert for local HTTPS). Proceed to continue.
-4. If you changed your Steam Deck's hostname, replace `steamdeck` in the redirect URI accordingly
+4. The redirect URI must match exactly, including hostname capitalization. Use the URI shown on the login page even if you did not change your hostname.
 5. Spotify development mode limits each Client ID to 5 authorized users
 
 > **Note:** Devices running OpenHarmony are not supported at this time due to the lack of mDNS / Zeroconf discovery.
