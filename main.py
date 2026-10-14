@@ -27,7 +27,7 @@ SSL_CERT = os.path.join(decky.DECKY_PLUGIN_RUNTIME_DIR, "cert.pem")
 SSL_KEY = os.path.join(decky.DECKY_PLUGIN_RUNTIME_DIR, "key.pem")
 
 DEFAULT_SETTINGS = {
-    "device_name": "Steam Deck",
+    "device_name": "",
     "bitrate": 320,
     "spotify_client_id": "",
 }
@@ -98,6 +98,9 @@ def _load_settings() -> dict:
         with open(SETTINGS_FILE, "r") as f:
             saved = json.load(f)
         merged = {**DEFAULT_SETTINGS, **saved}
+        # Older versions saved this fixed default without offering a name editor.
+        if merged["device_name"] == "Steam Deck" and not saved.get("device_name_customized"):
+            merged["device_name"] = ""
         return merged
     except Exception:
         return dict(DEFAULT_SETTINGS)
@@ -316,7 +319,7 @@ class Plugin:
         settings = self._settings
         cmd = [
             LIBRESPOT_BIN,
-            "--name", settings.get("device_name", "Steam Deck"),
+            "--name", settings.get("device_name") or socket.gethostname(),
             "--device-type", "computer",
             "--bitrate", str(settings.get("bitrate", 320)),
             "--backend", "pulseaudio",
@@ -380,6 +383,11 @@ class Plugin:
     async def set_setting(self, key: str, value) -> dict:
         if key not in DEFAULT_SETTINGS:
             return {"ok": False, "error": f"unknown setting: {key}"}
+        if key == "device_name":
+            if not isinstance(value, str) or any(ord(char) < 32 or ord(char) == 127 for char in value):
+                return {"ok": False, "error": "Device name must be text without control characters"}
+            value = value.strip()
+            self._settings["device_name_customized"] = True
         self._settings[key] = value
         _save_settings(self._settings)
         decky.logger.info("Setting updated: %s = %s", key, value)

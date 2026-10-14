@@ -9,6 +9,7 @@ import {
   SliderField,
   Focusable,
   DialogButton,
+  TextField,
   Navigation,
   staticClasses,
 } from "@decky/ui";
@@ -36,7 +37,7 @@ const backendGetStatus = callable<[], {
   duration_ms: number;
   volume: number | null;
 }>("get_status");
-const backendSetSetting = callable<[string, any], { ok: boolean; settings?: Settings }>("set_setting");
+const backendSetSetting = callable<[string, any], { ok: boolean; settings?: Settings; error?: string }>("set_setting");
 const backendStartOAuth = callable<[], { ok: boolean; landing_url?: string; redirect_uri?: string; error?: string }>("start_oauth");
 const backendGetAuthStatus = callable<[], { authenticated: boolean; needs_reauth: boolean }>("get_auth_status");
 const backendLogout = callable<[], { ok: boolean }>("logout_spotify");
@@ -116,11 +117,13 @@ const Content: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastEvent, setLastEvent] = useState<LibrespotEvent | null>(null);
   const [settings, setSettings] = useState<Settings>({
-    device_name: "Steam Deck",
+    device_name: "",
     bitrate: 320,
     spotify_client_id: "",
   });
   const [toggling, setToggling] = useState(false);
+  const [deviceName, setDeviceName] = useState("");
+  const [savingDeviceName, setSavingDeviceName] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [needsReauth, setNeedsReauth] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -143,6 +146,7 @@ const Content: FC = () => {
       setRunning(status.running);
       setBinaryFound(status.binary_found);
       setSettings(status.settings);
+      setDeviceName(status.settings.device_name);
       setLastEvent(status.last_event);
       if (status.volume != null) setVolume(status.volume);
       if (status.track_meta) {
@@ -272,12 +276,16 @@ const handleToggle = useCallback(async (checked: boolean) => {
   }, []);
 
   const handleSettingChange = useCallback(async (key: string, value: any) => {
-    const result = await backendSetSetting(key, value);
-    if (result.ok && result.settings) {
+    try {
+      const result = await backendSetSetting(key, value);
+      if (!result.ok || !result.settings) throw new Error(result.error ?? "Could not save setting");
       setSettings(result.settings);
+      if (key === "device_name") setDeviceName(result.settings.device_name);
       if ((key === "device_name" || key === "bitrate") && running) {
         setRestartNeeded(true);
       }
+    } catch (error) {
+      toaster.toast({ title: "Deckify", body: String(error), duration: 5000 });
     }
   }, [running]);
 
@@ -571,6 +579,31 @@ const handleToggle = useCallback(async (checked: boolean) => {
       </PanelSection>
 
       <PanelSection title="Settings">
+        <PanelSectionRow>
+          <TextField
+            label="Device name"
+            description="Spotify Connect name. Leave empty to use the system hostname."
+            value={deviceName}
+            disabled={savingDeviceName}
+            onChange={(event) => setDeviceName(event.target.value)}
+          />
+        </PanelSectionRow>
+        <PanelSectionRow>
+          <ButtonItem
+            label="Save device name"
+            disabled={savingDeviceName || deviceName === settings.device_name}
+            onClick={async () => {
+              setSavingDeviceName(true);
+              try {
+                await handleSettingChange("device_name", deviceName);
+              } finally {
+                setSavingDeviceName(false);
+              }
+            }}
+          >
+            Save
+          </ButtonItem>
+        </PanelSectionRow>
         {restartNeeded && (
           <PanelSectionRow>
             <ButtonItem

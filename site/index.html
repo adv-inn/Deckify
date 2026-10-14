@@ -291,6 +291,11 @@ footer .links a+a{margin-left:16px}
       <button class="copy-btn" data-i18n="copy" onclick="copyCmd(this,'uninstall-cmd')"></button>
     </div>
     <p style="color:var(--muted);font-size:0.85rem;margin-top:8px" data-i18n="uninstall_label"></p>
+    <div class="install-block" style="margin-top:16px">
+      <code id="purge-cmd">curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge</code>
+      <button class="copy-btn" data-i18n="copy" onclick="copyCmd(this,'purge-cmd')"></button>
+    </div>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:8px" data-i18n="purge_label"></p>
   </div>
 </section>
 
@@ -360,7 +365,8 @@ en:{
   install:"Install",
   install_desc:"One command, that\u2019s it.",
   install_prereq:'Requires <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a> installed on your Steam Deck',
-  uninstall_label:"To uninstall.",
+  uninstall_label:"Uninstall the plugin and keep its settings and data.",
+  purge_label:"Optional: also delete local login credentials, settings, cache, certificates, and logs. Separate backups and Spotify account access are not removed.",
   copy:"Copy",
   copied:"Copied!",
   setup_title:"Spotify App Setup",
@@ -393,7 +399,8 @@ zh:{
   install:"\u5b89\u88c5",
   install_desc:"\u4e00\u884c\u547d\u4ee4\uff0c\u641e\u5b9a\u3002",
   install_prereq:'\u9700\u8981\u5728 Steam Deck \u4e0a\u5148\u5b89\u88c5 <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a>',
-  uninstall_label:"\u5378\u8f7d\u547d\u4ee4\u3002",
+  uninstall_label:"卸载插件，保留配置和数据。",
+  purge_label:"可选：同时删除本机登录信息、配置、缓存、证书和日志，不删除另行制作的备份或撤销 Spotify 账户授权。",
   copy:"\u590d\u5236",
   copied:"\u5df2\u590d\u5236\uff01",
   setup_title:"Spotify \u5e94\u7528\u914d\u7f6e",
@@ -426,7 +433,8 @@ ja:{
   install:"\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb",
   install_desc:"\u30b3\u30de\u30f3\u30c9\u4e00\u3064\u3067\u5b8c\u4e86\u3002",
   install_prereq:'Steam Deck \u306b <a href="https://decky.xyz" target="_blank" rel="noopener">Decky Loader</a> \u304c\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u6e08\u307f\u3067\u3042\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059',
-  uninstall_label:"\u30a2\u30f3\u30a4\u30f3\u30b9\u30c8\u30fc\u30eb\u7528\u3002",
+  uninstall_label:"プラグインを削除し、設定とデータを保持します。",
+  purge_label:"任意：ローカルのログイン情報、設定、キャッシュ、証明書、ログも削除します。別途作成したバックアップと Spotify 側のアプリ認可は削除しません。",
   copy:"\u30b3\u30d4\u30fc",
   copied:"\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f\uff01",
   setup_title:"Spotify \u30a2\u30d7\u30ea\u306e\u8a2d\u5b9a",

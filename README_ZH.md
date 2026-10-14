@@ -44,6 +44,16 @@ curl -fsSL https://deckify.advinn.co/install.sh | sh
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 ```
 
+默认保留配置和数据，方便重新安装。如需同时删除登录信息、配置、缓存、证书和日志（含旧版存储位置），使用：
+
+```bash
+curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge
+```
+
+插件已移除后仍可执行 `--purge`。它只清理本机 Deckify 数据，不删除另行制作的备份，也不会撤销 Spotify 账户中的应用授权。两种卸载模式执行时都会短暂停止并启动 Decky Loader。
+
+在 Deckify 的 **Settings → Device name** 中填写 Spotify Connect 显示名称并保存；正在运行时点击 **Restart Now** 应用。留空则使用系统主机名。已有自定义名称会保留，旧版自动填写的“Steam Deck”会改为使用主机名。修改显示名称不会改变系统主机名或 OAuth 回调地址。
+
 ## Spotify 账户设置
 
 每位用户需要在 [developer.spotify.com](https://developer.spotify.com) 注册一个 Spotify App：

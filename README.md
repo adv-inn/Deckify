@@ -44,6 +44,16 @@ To uninstall:
 curl -fsSL https://deckify.advinn.co/uninstall.sh | sh
 ```
 
+This keeps settings and data for reinstallation. To also delete saved login credentials, settings, cache, certificates, and logs (including legacy locations), use:
+
+```bash
+curl -fsSL https://deckify.advinn.co/uninstall.sh | sh -s -- --purge
+```
+
+`--purge` also works after the plugin has been removed. It deletes local Deckify data, not backups you made separately, and does not revoke the app's access on Spotify. Both modes briefly stop and start Decky Loader when uninstalling.
+
+In Deckify's **Settings → Device name**, enter a custom Spotify Connect name and save it, then select **Restart Now** if playback is running. Leave the field empty to use the system hostname. Existing custom names are preserved; the old automatic “Steam Deck” name switches to the system hostname. Changing this display name does not change the hostname or OAuth redirect URI.
+
 ## Spotify Account Setup
 
 Each user must register a Spotify App at [developer.spotify.com](https://developer.spotify.com):
