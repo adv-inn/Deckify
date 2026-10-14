@@ -50,6 +50,8 @@ interface Settings {
   device_name: string;
   bitrate: number;
   spotify_client_id: string;
+  volume: number;
+  output_gain: number;
 }
 
 interface LibrespotEvent {
@@ -119,6 +121,8 @@ const Content: FC = () => {
     device_name: "Steam Deck",
     bitrate: 320,
     spotify_client_id: "",
+    volume: 50,
+    output_gain: 100,
   });
   const [toggling, setToggling] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -150,6 +154,9 @@ const Content: FC = () => {
       }
       if (status.is_playing) {
         setIsPlaying(true);
+      }
+      if (status.volume != null) {
+        setVolume(status.volume);
       }
     });
     backendGetAuthStatus().then((s) => {
@@ -589,6 +596,20 @@ const handleToggle = useCallback(async (checked: boolean) => {
             rgOptions={BITRATE_OPTIONS}
             selectedOption={settings.bitrate}
             onChange={(opt) => handleSettingChange("bitrate", opt.data)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <SliderField
+            label="Output gain"
+            description="Adjusts Deckify relative to game audio. Spotify volume uses the player slider."
+            value={settings.output_gain}
+            min={50}
+            max={150}
+            step={5}
+            showValue
+            valueSuffix="%"
+            onChange={(value) => handleSettingChange("output_gain", value)}
           />
         </PanelSectionRow>
 
